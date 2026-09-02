@@ -28,6 +28,9 @@ jobs:
           node-version: 22
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Install dependencies
+        run: bun install
+
       - name: Derive version from Git tag
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#v}"
@@ -42,9 +45,6 @@ jobs:
             plugin.version = pkg.version;
             writeFileSync("plugin.json", JSON.stringify(plugin, null, 2) + "\n");
           '
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
 
       - name: Build package
         run: bun run build
