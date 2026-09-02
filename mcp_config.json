@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "di-framework-mcp": {
+      "command": "node",
+      "args": ["${pluginDir}/dist/index.js"]
+    }
+  }
+}
