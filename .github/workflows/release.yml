@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  id-token: write # Required for npm OIDC Trusted Publishing (provenance)
+
+jobs:
+  publish:
+    name: Publish to npm & GitHub Releases
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Derive version from Git tag
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          echo "Bumping version in package.json & plugin.json to $TAG_VERSION"
+          npm version "$TAG_VERSION" --no-git-tag-version --allow-same-version
+          
+          # Also update version in plugin.json
+          bun -e '
+            import { readFileSync, writeFileSync } from "node:fs";
+            const pkg = JSON.parse(readFileSync("package.json", "utf-8"));
+            const plugin = JSON.parse(readFileSync("plugin.json", "utf-8"));
+            plugin.version = pkg.version;
+            writeFileSync("plugin.json", JSON.stringify(plugin, null, 2) + "\n");
+          '
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build package
+        run: bun run build
+
+      - name: Publish to npm (Trusted Publishing with Provenance)
+        run: npm publish --provenance --access public
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
