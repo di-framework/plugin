@@ -3,30 +3,22 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
+  workflow_dispatch:
 
 permissions:
   contents: write
-  id-token: write # Required for npm OIDC Trusted Publishing (provenance)
+  id-token: write
 
 jobs:
-  publish:
-    name: Publish to npm & GitHub Releases
+  release:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: bun install
@@ -34,10 +26,10 @@ jobs:
       - name: Derive version from Git tag
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#v}"
-          echo "Bumping version in package.json & plugin.json to $TAG_VERSION"
+          echo "Bumping version to: $TAG_VERSION"
           npm version "$TAG_VERSION" --no-git-tag-version --allow-same-version
           
-          # Also update version in plugin.json
+          # Also sync plugin.json
           bun -e '
             import { readFileSync, writeFileSync } from "node:fs";
             const pkg = JSON.parse(readFileSync("package.json", "utf-8"));
@@ -49,10 +41,25 @@ jobs:
       - name: Build package
         run: bun run build
 
-      - name: Publish to npm (Trusted Publishing with Provenance)
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Ensure modern npm for OIDC trusted publishing
+        run: npm install -g npm@latest
+
+      - name: Publish to npm
+        run: |
+          set -euo pipefail
+          name=$(node -p "require('./package.json').name")
+          version=$(node -p "require('./package.json').version")
+          if npm view "$name@$version" version >/dev/null 2>&1; then
+            echo "Skipping $name@$version (already published)"
+            exit 0
+          fi
+          echo "Publishing $name@$version"
+          npm publish --access public --provenance --ignore-scripts
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
