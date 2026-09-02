@@ -1,60 +1,86 @@
 # @di-framework/plugin
 
-Official Antigravity Agent Plugin and Model Context Protocol (MCP) Server for **`di-framework`**.
+Official Agent Plugin and Model Context Protocol (MCP) Server for **`di-framework`**.
 
-This package provides AI agents with deep knowledge of `di-framework`, progressive API skill runbooks, architectural conventions, and live MCP diagnostic tools.
+Equips AI coding assistants with deep knowledge of `di-framework`, version-scoped semantic documentation search, section context expansion, architectural conventions, and diagnostic tools.
+
+---
+
+## Supported Coding Agents
+
+Works seamlessly across all modern AI coding assistants and agentic IDEs:
+
+* **Claude** (Claude Code, Claude Desktop)
+* **Cursor** (.cursor/mcp.json, .cursor/rules/)
+* **JetBrains Junie** (.idea/mcp.json)
+* **Hermes Agent & Nous** (.agents/, MCP)
+* **Codex & OpenAI Agents** (AGENTS.md, MCP)
+* **Google Antigravity & Gemini CLI** (.agents/plugins/)
+* **Vibe & Grok** (MCP)
 
 ---
 
 ## What's Included
 
-1. **`di-framework-api` Skill** (`skills/di-framework-api/`):
-   - Progressive disclosure runbooks for configuring containers, binding tokens, and managing lifecycles.
-   - Reference documentation and verified TypeScript examples.
-2. **Coding Rules & Conventions** (`rules/AGENTS.md`):
-   - Automatic rules to enforce pure static factory methods, typed injection tokens, and lifecycle boundaries.
-3. **MCP Diagnostic Server** (`src/`):
-   - `di_inspect_graph`: Inspects DI container registrations and checks for circular dependencies.
-   - `di_validate_tokens`: Validates token bindings against registered providers.
-   - `di_scaffold_provider`: Generates boilerplate service interfaces, tokens, and providers.
-4. **CLI Installer & Updater** (`bin/cli.ts`):
-   - Fast installation into local workspace (`.agents/plugins/`) or user home (`~/.gemini/config/plugins/`).
+1. **Version-Scoped Semantic Documentation Search (`di_search_docs`)**:
+   - Queries the live Cloudflare Workers AI + Vectorize search engine at `https://search.di-framework.dev`.
+   - Automatically detects your project's installed `@di-framework/*` package version (e.g. `v4.2`, `v5.0`) or falls back to `latest`.
+2. **Context Window Expansion (`di_window`)**:
+   - Fetches targeted adjacent sections and complete code blocks around a matched heading or cursor without dumping the whole document.
+3. **Coding Rules & Conventions (`rules/AGENTS.md`, `.cursor/rules/di-framework.mdc`)**:
+   - Enforces pure static factory methods, typed injection tokens, child scopes, and container immutability.
+4. **Scaffolding & Diagnostics**:
+   - `di_scaffold_provider`: Scaffolds boilerplate service interfaces, tokens, and providers.
+   - `di_validate_tokens` & `di_inspect_graph`: Validates registrations and detects circular dependencies.
+5. **Universal CLI Installer (`bin/cli.ts`)**:
+   - Automatically provisions config files across all detected coding agents in your workspace.
 
 ---
 
 ## Installation
 
 ### In a Project Workspace (Recommended)
+Automatically detects existing `.cursor`, `.claude`, `.idea`, or `.agents` directories in your workspace and configures them:
+
 ```bash
-bunx @di-framework/plugin install
-# or
 npx @di-framework/plugin install
+# or
+bunx @di-framework/plugin install
+```
+
+### Target a Specific Agent
+```bash
+npx @di-framework/plugin install --agent cursor
+npx @di-framework/plugin install --agent claude
+npx @di-framework/plugin install --agent junie
+npx @di-framework/plugin install --agent antigravity
+npx @di-framework/plugin install --agent all
 ```
 
 ### Globally (Machine-Wide)
 ```bash
-bunx @di-framework/plugin install --global
+npx @di-framework/plugin install --global
 ```
 
 ---
 
-## Usage
+## MCP Server Manual Configuration
 
-Once installed, Antigravity automatically discovers the plugin on startup:
-* The **`di-framework-api`** skill activates whenever you ask about dependency injection or container configuration.
-* The **MCP Tools** are available for the agent to inspect graphs and scaffold new providers.
+If your environment uses a manual MCP client configuration:
+
+```json
+{
+  "mcpServers": {
+    "di-framework": {
+      "command": "npx",
+      "args": ["-y", "@di-framework/plugin@latest"]
+    }
+  }
+}
+```
 
 ---
 
-## Development
+## License
 
-```bash
-# Install dependencies
-bun install
-
-# Run MCP server locally
-bun run start
-
-# Build for distribution
-bun run build
-```
+Dual-licensed under either Apache-2.0 or MIT at your option.
