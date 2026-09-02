@@ -83,7 +83,12 @@ async function run() {
 
   const dryRun = args.includes('--dry-run');
   const cwd = process.cwd();
-  const sourceDir = resolve(__dirname, '..');
+  
+  // Find package root (handles both bin/cli.ts and dist/bin/cli.js)
+  let sourceDir = resolve(__dirname, '..');
+  if (!existsSync(join(sourceDir, 'package.json')) && existsSync(join(sourceDir, '..', 'package.json'))) {
+    sourceDir = resolve(sourceDir, '..');
+  }
   const serverPath = join(sourceDir, 'dist/index.js');
 
   const mcpEntry = {

@@ -6,11 +6,10 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "di-framework-plugin": "bin/cli.ts"
+    "di-framework-plugin": "./dist/bin/cli.js"
   },
   "files": [
     "dist",
-    "bin",
     "plugin.json",
     "mcp_config.json",
     "rules",
@@ -26,7 +25,7 @@
   },
   "scripts": {
     "start": "node dist/index.js",
-    "build": "bun build src/index.ts --outdir ./dist --target node && tsc --emitDeclarationOnly",
+    "build": "bun build src/index.ts --outdir ./dist --target node && bun build bin/cli.ts --outdir ./dist/bin --target node && tsc --emitDeclarationOnly",
     "prepublishOnly": "bun run build",
     "openapi:types": "openapi-typescript ./contracts/openapi.json -o ./src/contracts/search-api.ts",
     "check": "bun test"
