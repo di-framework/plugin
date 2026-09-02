@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "di-framework-plugin": "./bin/cli.ts"
+    "di-framework-plugin": "bin/cli.ts"
   },
   "files": [
     "dist",
@@ -33,7 +33,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/di-framework/plugin.git"
+    "url": "git+https://github.com/di-framework/plugin.git"
   },
   "bugs": {
     "url": "https://github.com/di-framework/plugin/issues"
