@@ -28,8 +28,10 @@
     "build": "bun build src/index.ts --outdir ./dist --target node && bun build bin/cli.ts --outdir ./dist/bin --target node && tsc --emitDeclarationOnly",
     "prepublishOnly": "bun run build",
     "openapi:types": "openapi-typescript ./contracts/openapi.json -o ./src/contracts/search-api.ts",
-    "check": "bun test",
-    "check:examples": "tsc -p skills/tsconfig.json && bun test src/tools/framework-examples.test.ts"
+    "check": "bun run typecheck && bun run build && bun test",
+    "check:examples": "tsc -p skills/tsconfig.json && bun test src/tools/framework-examples.test.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.check.json && tsc -p skills/tsconfig.json",
+    "smoke:package": "bun test/packed-smoke.ts"
   },
   "repository": {
     "type": "git",
@@ -68,6 +70,6 @@
   },
   "engines": {
     "node": ">=20.0.0",
-    "bun": ">=1.0.0"
+    "bun": ">=1.4.2"
   }
 }
