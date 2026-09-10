@@ -1,7 +1,7 @@
 {
   "name": "@di-framework/plugin",
   "version": "1.0.0",
-  "description": "Antigravity Agent Plugin & MCP Server for di-framework",
+  "description": "Agent skills, conventions, and MCP tools for di-framework",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -41,7 +41,6 @@
   "homepage": "https://docs.di-framework.dev",
   "keywords": [
     "di-framework",
-    "antigravity",
     "agent-plugin",
     "mcp",
     "skills",

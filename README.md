@@ -21,18 +21,21 @@ Project installs also copy Cursor rules or all bundled Claude Code skills. Globa
 
 ## What's Included
 
-1. **Version-Scoped Semantic Documentation Search (`di_search_docs`)**:
-   - Queries the live Cloudflare Workers AI + Vectorize search engine at `https://search.di-framework.dev`.
-   - Automatically detects your project's installed `@di-framework/*` package version (e.g. `v4.2`, `v5.0`) or falls back to `latest`.
-2. **Context Window Expansion (`di_window`)**:
-   - Fetches targeted adjacent sections and complete code blocks around a matched heading or cursor without dumping the whole document.
-3. **Coding Rules & Conventions (`rules/AGENTS.md`, `.cursor/rules/di-framework.mdc`)**:
-   - Enforces pure static factory methods, typed injection tokens, child scopes, and container immutability.
-4. **Scaffolding & Diagnostics**:
-   - `di_scaffold_provider`: Scaffolds boilerplate service interfaces, tokens, and providers.
-   - `di_validate_tokens` & `di_inspect_graph`: Validates registrations and detects circular dependencies.
-5. **CLI Installer (`bin/cli.ts`)**:
-   - Merges MCP configuration for detected Cursor and Claude Code installations.
+- **Documentation tools:** `di_search_docs` resolves the target project's installed framework version (with provenance), and `di_window` expands a matching section using the same version. Missing or ambiguous version information is reported; remote endpoint fallback does not silently change the requested version.
+- **DI rules and scaffolding:** Class registration, explicit injection, singleton/transient behavior, and independent container forks verified against **@di-framework/core 5.3.0**. `di_scaffold_provider` generates a service class and registration helper; pass the target's resolved `frameworkVersion`. Other scaffold versions are rejected.
+- **Diagnostics:** `di_inspect_graph` inspects supported source patterns and reports incomplete analysis for unsupported constructs. `di_validate_tokens` checks caller-supplied registration assertions only. Runtime resolution tests remain necessary.
+- **Installer:** Merges supported agent MCP settings and distributes the bundled rules and skills.
+
+| Skill | Tasks |
+| --- | --- |
+| `di-framework-api` | Register and inject services, choose lifecycles, diagnose container behavior |
+| `di-http-api` | Build HTTP routes with middleware, authentication and authorization |
+| `di-data-rpc` | Add repository-backed services, test adapters, define and consume RPC contracts |
+| `di-app-lifecycle` | Run, test, build and diagnose apps; prepare and verify wasmCloud deployments |
+
+All skills inspect the target's resolved versions and configuration before prescribing APIs. Bundled examples target **5.3.0**; other releases require verification against their published declarations and versioned source. Detailed task guidance links to the framework docs rather than maintaining another API manual. Planned workflows are tracked through [docs issue 12](https://github.com/di-framework/docs/issues/12) and are added only after implementation and documentation ship.
+
+`bun run check:examples` typechecks and executes the bundled DI, HTTP authentication/authorization, repository, and RPC examples against pinned published packages. Generated scaffolds are separately compiled and tested for singleton/transient identity. These native tests do not run wasmCloud component builds or infrastructure deployments; the lifecycle skill describes verification in the target environment.
 
 ---
 
