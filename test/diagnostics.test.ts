@@ -9,7 +9,7 @@ afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: tru
 function fixture(code: string) {
   const dir = mkdtempSync(join(tmpdir(), 'di-graph-')); dirs.push(dir);
   const file = join(dir, 'app.ts');
-  writeFileSync(file, `import { Container, Component } from '@di-framework/core';\nconst app = new Container();\n${code}`);
+  writeFileSync(file, `import { Container } from '@di-framework/core'; import { Component } from '@di-framework/core/decorators';\nconst app = new Container();\n${code}`);
   return file;
 }
 test('inspects class property injection with source locations', () => {

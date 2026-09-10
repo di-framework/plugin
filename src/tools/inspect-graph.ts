@@ -45,7 +45,7 @@ export function analyzeDependencyGraph(sourceFiles: string[]): GraphReport {
     const components = new Set<string>();
     const token = (node: ts.Node | undefined): string | undefined => node && (ts.isStringLiteral(node) || ts.isIdentifier(node)) ? node.text : undefined;
     for (const statement of source.statements) {
-      if (ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier) && statement.moduleSpecifier.text === '@di-framework/core') {
+      if (ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier) && ['@di-framework/core', '@di-framework/core/decorators'].includes(statement.moduleSpecifier.text)) {
         const bindings = statement.importClause?.namedBindings;
         if (bindings && ts.isNamedImports(bindings)) for (const spec of bindings.elements) {
           const original = (spec.propertyName ?? spec.name).text;
