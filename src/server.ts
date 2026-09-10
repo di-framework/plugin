@@ -52,7 +52,7 @@ export function createDiMcpServer(): Server {
         },
         {
           name: 'di_scaffold_provider',
-          description: 'Scaffolds a new di-framework service interface, token, default implementation, and provider object.',
+          description: 'Scaffolds a service class and registration helper verified with core 5.3.0.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -62,8 +62,12 @@ export function createDiMcpServer(): Server {
               },
               lifecycle: {
                 type: 'string',
-                enum: ['Singleton', 'Scoped', 'Transient'],
-                description: 'Lifecycle scope (defaults to Singleton)',
+                enum: ['Singleton', 'Transient'],
+                description: 'Lifecycle (defaults to Singleton)',
+              },
+              frameworkVersion: {
+                type: 'string',
+                description: 'Resolved target core version; scaffold supports 5.3.0 (default)',
               },
             },
             required: ['serviceName'],
@@ -159,7 +163,7 @@ export function createDiMcpServer(): Server {
     if (name === 'di_scaffold_provider') {
       const serviceName = String(args?.serviceName ?? 'ExampleService');
       const lifecycle = String(args?.lifecycle ?? 'Singleton');
-      const code = scaffoldProvider(serviceName, lifecycle);
+      const code = scaffoldProvider(serviceName, lifecycle, args?.frameworkVersion ? String(args.frameworkVersion) : undefined);
       return {
         content: [{ type: 'text', text: code }],
       };

@@ -1,66 +1,39 @@
 ---
 name: di-framework-api
-description: >-
-  Use this skill when designing, configuring, binding, refactoring, or troubleshooting
-  dependency injection containers, service tokens, provider lifecycles, and modules in di-framework.
+description: Design, register, inject, or troubleshoot services and container lifecycles in di-framework applications.
 ---
 
-# di-framework API Skill
+# Dependency injection
 
-A comprehensive operational guide for authoring, binding, and resolving dependencies using `di-framework`.
+Bundled guidance and executable examples support **@di-framework/core 5.3.0**.
+Before editing, inspect the target package's installed package metadata and lockfile;
+a manifest range is not a resolved version. Check its TypeScript/decorator configuration.
+For another release, report that these examples are unverified and consult that release's
+public types and tagged source before adapting them. Do not silently substitute latest.
 
-## Quick Start: Creating a Container
+Import `Container` from `@di-framework/core` and decorators from
+`@di-framework/core/decorators`. Register classes with `container.register(Service)`;
+singleton is the default, `{ singleton: false }` makes resolutions transient.
+Use class constructors or string tokens. Inject explicit `@Component(Dependency)`
+constructor parameters with `experimentalDecorators: true`, or use an arrow factory
+that explicitly resolves dependencies. TypeScript types alone do not guarantee injection.
 
-```ts
-import { Container, createToken, Lifecycle } from '@di-framework/core';
+Start with [the runnable quick start](examples/container-patterns.ts). It exercises
+constructor injection, factories, singleton/transient identity, and fork behavior.
+Run it in a project with the pinned core package using Bun and legacy decorators enabled.
+See [the API reference](references/api-reference.md) for lifecycle caveats and source links.
 
-export interface Logger {
-  info(message: string): void;
-}
+`di_scaffold_provider` generates a class and registration helper. Pass the target's
+resolved `frameworkVersion`; only 5.3.0 is currently supported by the scaffold.
+Use `di_inspect_graph` and `di_validate_tokens` as static diagnostics: dynamic registration,
+module initialization, and factories outside the analyzed forms require runtime tests.
+A clean partial analysis does not prove the application resolves correctly.
 
-export const LOGGER_TOKEN = createToken<Logger>('Logger');
+For additional APIs, call `di_search_docs` with the resolved version, then `di_window`
+with the same version and returned topic/cursor. Check returned provenance; if that
+version is unavailable, use tagged source instead of treating latest as compatible.
 
-export class ConsoleLogger implements Logger {
-  info(message: string) {
-    console.log(`[INFO] ${message}`);
-  }
-}
-
-const container = new Container();
-
-container.register(LOGGER_TOKEN, {
-  useClass: ConsoleLogger,
-  lifecycle: Lifecycle.Singleton,
-});
-
-const logger = container.resolve(LOGGER_TOKEN);
-logger.info('Container initialized!');
-```
-
-## Common Workflows
-
-### 1. Registering Providers
-- **Class Provider:** `{ useClass: MyService, lifecycle: Lifecycle.Singleton }`
-- **Value Provider:** `{ useValue: configObject }`
-- **Factory Provider:** `{ useFactory: (c) => new Service(c.resolve(DEP_TOKEN)), lifecycle: Lifecycle.Scoped }`
-
-### 2. Scoped Containers (Request Lifecycles)
-Create child containers for HTTP requests or transient contexts:
-```ts
-const requestScope = container.createChildScope();
-requestScope.register(REQUEST_CONTEXT_TOKEN, { useValue: currentReq });
-const handler = requestScope.resolve(REQUEST_HANDLER_TOKEN);
-```
-
-### 3. Documentation Search & Window Expansion
-Whenever you need specific API signatures, middleware setups, RPC bindings, or decorators for the framework version used in this project:
-- **Search:** Call **`di_search_docs(query: "...")`** to find relevant topics and section slugs.
-- **Window Expansion:** If a search snippet cuts off context or you need surrounding sections and code blocks, call **`di_window(topic: "...", cursor: "...", radius: 1)`**. This returns targeted adjacent sections without loading the entire document.
-
-### 4. Diagnostic & Scaffolding Tools
-- Call `di_scaffold_provider` to generate new services conforming to framework conventions.
-- Call `di_inspect_graph` and `di_validate_tokens` to detect missing registrations or circular references.
-
-## References & Examples
-- [API Reference](./references/api-reference.md)
-- [Example Patterns](./examples/container-patterns.ts)
+When adding support for a release, compare its published declarations and implementation,
+update this skill, reference, examples, scaffold and distributed rules together, and run
+the examples and generated scaffold through typechecking and behavior tests against that
+exact dependency version before declaring support.
