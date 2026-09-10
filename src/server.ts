@@ -69,7 +69,7 @@ export function createDiMcpServer(): Server {
         },
         {
           name: 'di_validate_tokens',
-          description: 'Validates a list of tokens and provider bindings to ensure all required services are registered.',
+          description: 'Checks caller-supplied name/hasProvider assertions only; does not inspect application registrations. Use di_inspect_graph for source inspection.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -117,7 +117,7 @@ export function createDiMcpServer(): Server {
         },
         {
           name: 'di_inspect_graph',
-          description: 'Analyzes DI container dependency graphs for cycles and missing dependencies.',
+          description: 'Statically inspects file-local @di-framework/core 5.3.x Container registrations, explicit Component injection and inline factory resolves. Reports cycles, missing registrations, source locations and incomplete analysis for unsupported patterns; never executes source.',
           inputSchema: {
             type: 'object',
             properties: {
