@@ -8,6 +8,7 @@ import { validateTokens } from './tools/validate-tokens';
 import { analyzeDependencyGraph } from './tools/inspect-graph';
 import { searchDocs } from './tools/search-docs';
 import { getDocWindow } from './tools/window';
+import { DocsError } from './tools/docs-client';
 
 export function createDiMcpServer(): Server {
   const server = new Server(
@@ -38,10 +39,11 @@ export function createDiMcpServer(): Server {
               },
               version: {
                 type: 'string',
-                description: 'Optional version override (e.g. "v4.2", "latest"). Defaults to auto-detected package.json version.',
+                description: 'Optional version override (e.g. "v4.2", "latest"). Defaults to the installed version in projectPath; fallback reasons are returned.',
               },
+              projectPath: { type: 'string', description: 'Absolute target project/workspace directory; defaults to the MCP process working directory.' },
               maxHits: {
-                type: 'number',
+                type: 'integer', minimum: 1, maximum: 50,
                 description: 'Maximum number of doc hits to return (defaults to 5)',
               },
             },
@@ -103,8 +105,9 @@ export function createDiMcpServer(): Server {
                 type: 'string',
                 description: 'The section slug, chunk ID, or index to expand around (e.g. "property-injection", "docs_events__subscribers", "0")',
               },
+              projectPath: { type: 'string', description: 'Absolute target project/workspace directory. Pass the search hit window.version to preserve its snapshot.' },
               radius: {
-                type: 'number',
+                type: 'integer', minimum: 0, maximum: 5,
                 description: 'Number of neighbor sections to include before and after (defaults to 1)',
               },
               version: {
@@ -137,35 +140,20 @@ export function createDiMcpServer(): Server {
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
 
-    if (name === 'di_search_docs') {
-      const query = String(args?.query ?? '');
-      const version = args?.version ? String(args.version) : undefined;
-      const maxHits = args?.maxHits ? Number(args.maxHits) : undefined;
-      const result = await searchDocs({ query, version, maxHits });
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
-    }
-
-    if (name === 'di_window') {
-      const topic = String(args?.topic ?? '');
-      const cursor = String(args?.cursor ?? '');
-      const radius = args?.radius ? Number(args.radius) : 1;
-      const version = args?.version ? String(args.version) : undefined;
-      const result = await getDocWindow({ topic, cursor, radius, version });
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(result ?? { error: 'Topic or cursor not found' }, null, 2),
-          },
-        ],
-      };
+    if (name === 'di_search_docs' || name === 'di_window') {
+      try {
+        for (const key of ['version', 'projectPath']) {
+          if (args?.[key] !== undefined && typeof args[key] !== 'string') throw new DocsError('invalid_input', `${key} must be a string`);
+        }
+        const context = { version: args?.version as string | undefined, projectPath: args?.projectPath as string | undefined };
+        const result = name === 'di_search_docs'
+          ? await searchDocs({ ...context, query: args?.query as string, maxHits: args?.maxHits as number | undefined })
+          : await getDocWindow({ ...context, topic: args?.topic as string, cursor: args?.cursor as string, radius: args?.radius as number | undefined });
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      } catch (error) {
+        const failure = error instanceof DocsError ? error : new DocsError('invalid_input', error instanceof Error ? error.message : 'Invalid documentation request');
+        return { isError: true, content: [{ type: 'text', text: JSON.stringify({ error: { code: failure.code, message: failure.message, ...failure.details } }, null, 2) }] };
+      }
     }
 
     if (name === 'di_scaffold_provider') {
