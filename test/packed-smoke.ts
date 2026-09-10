@@ -8,7 +8,7 @@ import { checkServer } from '../bin/install';
 
 const root = resolve(import.meta.dir, '..');
 const temporary = mkdtempSync(join(tmpdir(), 'di-packed-'));
-const run = (command: string, args: string[], cwd: string, env = process.env) => execFileSync(command, args, { cwd, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+const run = (command: string, args: string[], cwd: string, env = process.env) => execFileSync(command, args, { cwd, env, timeout: 120_000, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 try {
   const packed = JSON.parse(run('npm', ['pack', '--json', '--ignore-scripts', '--pack-destination', temporary], root));
   const tarball = join(temporary, packed[0].filename);
@@ -61,7 +61,10 @@ try {
   mkdirSync(workspace);
   const runnerArgs = ['--yes', '--cache', cache, '--package', tarball, '--', 'di-framework-plugin'];
   run('npx', [...runnerArgs, 'install', '--agent', 'cursor'], workspace);
-  await checkServer({ command: 'npx', args: [...runnerArgs, 'serve'] }, workspace);
+  // Package runners may validate/install dependencies before starting the server,
+  // even with a populated cache. Give this network-dependent phase a bounded
+  // two-minute startup budget; installed runtime health checks retain 10 seconds.
+  await checkServer({ command: 'npx', args: [...runnerArgs, 'serve'] }, workspace, 120_000);
   rmSync(cache, { recursive: true, force: true });
   const config = JSON.parse(readFileSync(join(workspace, '.cursor/mcp.json'), 'utf8'));
   await checkServer(config.mcpServers['di-framework'], workspace);

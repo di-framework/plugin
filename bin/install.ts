@@ -48,11 +48,11 @@ export function writeConfig(filePath: string, content: string): void {
   }
 }
 
-export async function checkServer(server: ServerCommand, cwd = process.cwd()): Promise<string[]> {
+export async function checkServer(server: ServerCommand, cwd = process.cwd(), startupTimeoutMs = 10_000): Promise<string[]> {
   const client = new Client({ name: 'di-framework-health-check', version: '1.0.0' });
   const transport = new StdioClientTransport({ ...server, cwd, stderr: 'inherit' });
   try {
-    await client.connect(transport, { timeout: 10_000 });
+    await client.connect(transport, { timeout: startupTimeoutMs });
     const result = await client.listTools({}, { timeout: 10_000 });
     const names = result.tools.map((tool) => tool.name);
     const expected = ['di_search_docs', 'di_window', 'di_scaffold_provider', 'di_validate_tokens', 'di_inspect_graph'];
