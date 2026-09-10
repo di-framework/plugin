@@ -36,7 +36,7 @@ try {
     assert.equal(readFileSync(join(workspace, '.cursor/mcp.json'), 'utf8'), installed);
     assert.equal(JSON.parse(installed).settings.keep, true);
     assert.equal(JSON.parse(installed).mcpServers.other.command, 'other');
-    const bundledSkills = readdirSync(join(unpacked, 'package/skills'));
+    const bundledSkills = readdirSync(join(unpacked, 'package/skills'), { withFileTypes: true }).filter(entry => entry.isDirectory()).map(entry => entry.name);
     for (const skill of bundledSkills) {
       assert.equal(existsSync(join(workspace, '.claude/skills', skill, 'SKILL.md')), true);
     }
