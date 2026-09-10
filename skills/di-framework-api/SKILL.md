@@ -25,8 +25,9 @@ See [the API reference](references/api-reference.md) for lifecycle caveats and s
 
 `di_scaffold_provider` generates a class and registration helper. Pass the target's
 resolved `frameworkVersion`; only 5.3.0 is currently supported by the scaffold.
-Use `di_inspect_graph` and `di_validate_tokens` as static diagnostics: dynamic registration,
-module initialization, and factories outside the analyzed forms require runtime tests.
+Use `di_inspect_graph` for static source diagnostics. `di_validate_tokens` checks only
+caller-supplied registration assertions. Dynamic registration, module initialization,
+and factories outside the analyzed forms require runtime tests.
 A clean partial analysis does not prove the application resolves correctly.
 
 For additional APIs, call `di_search_docs` with the resolved version, then `di_window`
