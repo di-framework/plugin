@@ -36,7 +36,18 @@ try {
     assert.equal(readFileSync(join(workspace, '.cursor/mcp.json'), 'utf8'), installed);
     assert.equal(JSON.parse(installed).settings.keep, true);
     assert.equal(JSON.parse(installed).mcpServers.other.command, 'other');
+    const bundledSkills = readdirSync(join(unpacked, 'package/skills'));
+    for (const skill of bundledSkills) {
+      assert.equal(existsSync(join(workspace, '.claude/skills', skill, 'SKILL.md')), true);
+    }
     rmSync(unpacked, { recursive: true });
+    rmSync(join(workspace, '.claude/skills'), { recursive: true });
+    rmSync(join(workspace, '.cursor/rules'), { recursive: true });
+    run(runtime, [join(workspace, '.di-framework/plugin/dist/bin/cli.js'), 'update', '--agent', 'all'], workspace);
+    for (const skill of bundledSkills) {
+      assert.equal(existsSync(join(workspace, '.claude/skills', skill, 'SKILL.md')), true);
+    }
+    assert.equal(existsSync(join(workspace, '.cursor/rules/di-framework.mdc')), true);
     for (const path of ['.cursor/mcp.json', '.mcp.json']) {
       const config = JSON.parse(readFileSync(join(workspace, path), 'utf8'));
       await checkServer(config.mcpServers['di-framework'], workspace);

@@ -68,7 +68,9 @@ async function run() {
   if (dryRun) return;
   if (resolve(source) !== resolve(runtime)) {
     mkdirSync(runtime, { recursive: true });
-    for (const item of ['dist', 'package.json']) cpSync(join(source, item), join(runtime, item), { recursive: true });
+    for (const item of ['dist', 'package.json', 'rules', 'skills']) {
+      if (existsSync(join(source, item))) cpSync(join(source, item), join(runtime, item), { recursive: true });
+    }
   }
   const names = await checkServer(server);
   for (const config of configs) writeConfig(config.path, config.content);
@@ -78,10 +80,10 @@ async function run() {
       mkdirSync(rules, { recursive: true });
       writeFileSync(join(rules, 'di-framework.mdc'), `---\ndescription: di-framework conventions\nglobs: *\nalwaysApply: true\n---\n\n${readFileSync(join(source, 'rules/AGENTS.md'), 'utf8')}`);
     }
-    if (entry.name === 'claude' && existsSync(join(source, 'skills/di-framework-api'))) {
-      const skills = join(base, '.claude/skills/di-framework-api');
+    if (entry.name === 'claude' && existsSync(join(source, 'skills'))) {
+      const skills = join(base, '.claude/skills');
       mkdirSync(skills, { recursive: true });
-      cpSync(join(source, 'skills/di-framework-api'), skills, { recursive: true });
+      cpSync(join(source, 'skills'), skills, { recursive: true });
     }
   }
   console.log(`MCP initialized; discovered ${names.length} tools. Configuration saved.`);

@@ -15,7 +15,7 @@ The installer supports **Cursor** and **Claude Code**. It writes the configurati
 | Cursor | `.cursor/mcp.json` | `~/.cursor/mcp.json` |
 | Claude Code | `.mcp.json` | `~/.claude.json` |
 
-Project installs also copy Cursor rules or the Claude Code skill. Global Claude Code installs copy the skill to `~/.claude/skills`. Global Cursor rules are not installed. Claude Code may ask you to approve project MCP servers before use.
+Project installs also copy Cursor rules or all bundled Claude Code skills. Global Claude Code installs copy all bundled skills to `~/.claude/skills`. Global Cursor rules are not installed. Claude Code may ask you to approve project MCP servers before use.
 
 ---
 
@@ -59,7 +59,7 @@ npx @di-framework/plugin install --agent all
 npx @di-framework/plugin install --global --agent cursor
 ```
 
-The installer copies a bundled runtime into `.di-framework/plugin` (or `~/.di-framework/plugin` for user installs). Registrations launch that durable CLI with `serve` using the installing Node/Bun executable, so deleting an `npx` cache does not break them. Keep that runtime executable installed; rerun installation after moving the workspace or replacing its runtime. Generated absolute paths are machine-specific.
+The installer copies a bundled runtime, rules, and skills into `.di-framework/plugin` (or `~/.di-framework/plugin` for user installs). Registrations launch that durable CLI with `serve` using the installing Node/Bun executable, so deleting an `npx` cache does not break them. Keep that runtime executable installed; rerun installation after moving the workspace or replacing its runtime. Generated absolute paths are machine-specific.
 
 Existing unrelated settings and servers are preserved. Invalid or unreadable JSON aborts before changing installation files. Use `--dry-run` to validate and preview without writes. `update` repeats the merge without duplicate registrations; choose a package version on the runner, for example `npx -y @di-framework/plugin@1.0.0 update --agent cursor`.
 
@@ -94,7 +94,7 @@ If your environment uses a manual MCP client configuration:
 
 ### Tested scope
 
-`bun test` covers safe configuration merging, including permission failures. After `bun run build`, `bun test/packed-smoke.ts` packs the publishable artifact and checks MCP initialization and tool discovery under Node and Bun, both generated adapter configurations, dry-run, invalid JSON, repeat installation, and startup after deleting the source package. It also exercises `npx` with the packed artifact and deletes its cache before checking the installed server. These are protocol/configuration tests; interactive Cursor and Claude Code UI discovery has not been automated.
+`bun test` covers safe configuration merging, including permission failures. After `bun run build`, `bun test/packed-smoke.ts` packs the publishable artifact and checks MCP initialization and tool discovery under Node and Bun, both generated adapter configurations, dry-run, invalid JSON, repeat installation, and startup and updates from the durable runtime after deleting the source package. It also exercises `npx` with the packed artifact and deletes its cache before checking the installed server. These are protocol/configuration tests; interactive Cursor and Claude Code UI discovery has not been automated.
 
 ---
 
