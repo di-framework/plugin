@@ -161,16 +161,18 @@ export function createDiMcpServer(): Server {
     }
 
     if (name === 'di_scaffold_provider') {
-      const serviceName = String(args?.serviceName ?? 'ExampleService');
-      const lifecycle = String(args?.lifecycle ?? 'Singleton');
-      const code = scaffoldProvider(serviceName, lifecycle, args?.frameworkVersion ? String(args.frameworkVersion) : undefined);
+      if (typeof args?.serviceName !== 'string') throw new Error('serviceName must be a string');
+      for (const key of ['lifecycle', 'frameworkVersion']) {
+        if (args?.[key] !== undefined && typeof args[key] !== 'string') throw new Error(`${key} must be a string`);
+      }
+      const code = scaffoldProvider(args.serviceName, args.lifecycle as string | undefined, args.frameworkVersion as string | undefined);
       return {
         content: [{ type: 'text', text: code }],
       };
     }
 
     if (name === 'di_validate_tokens') {
-      const tokens = (args?.tokens as any[]) ?? [];
+      const tokens = args?.tokens as { name: string; hasProvider: boolean }[];
       const result = validateTokens(tokens);
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],

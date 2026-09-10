@@ -29,6 +29,11 @@ test('MCP invalid inputs and missing files fail instead of clean reports', async
     { name: 'di_inspect_graph', arguments: { files: ['/nonexistent-di-source.ts'] } },
     { name: 'di_inspect_graph', arguments: { files: [] } },
     { name: 'di_validate_tokens', arguments: { tokens: [{ name: 'Store', hasProvider: 'true' }] } },
+    { name: 'di_validate_tokens', arguments: {} },
+    { name: 'di_scaffold_provider', arguments: {} },
+    { name: 'di_scaffold_provider', arguments: { serviceName: 'Service', frameworkVersion: false } },
+    { name: 'di_search_docs', arguments: { query: '', version: '5.3.0' } },
+    { name: 'di_window', arguments: { topic: 'intro', cursor: '0', radius: -1 } },
     { name: 'does_not_exist', arguments: {} },
   ]) {
     let failed = false;

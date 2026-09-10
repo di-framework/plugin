@@ -104,3 +104,26 @@ If your environment uses a manual MCP client configuration:
 ## License
 
 Dual-licensed under either Apache-2.0 or MIT at your option.
+
+## Validation and supported runtimes
+
+Development and CI use Bun 1.4.2. The bundled MCP server supports Node 20 or newer
+and Bun 1.4.2 or newer; CI tests packed startup on Node 20, 22 and 24 plus Bun.
+Framework examples target the exact 5.3.0 packages pinned in the lockfile.
+
+```bash
+bun install --frozen-lockfile
+bun run check
+bun run smoke:package
+```
+
+`check` typechecks source, CLI, tests and examples, builds the published entrypoints,
+and runs the fixture and framework behavior tests. Core tests do not contact the
+live documentation service. The packed smoke additionally requires npm registry
+access for its isolated `npx` install. It verifies the tarball, durable installations
+and MCP protocol startup. No live documentation smoke or infrastructure deployment
+is part of these checks.
+
+Pull requests run the Node matrix. Tagged releases depend on that same validation
+and recheck the versioned artifacts before publication. Manual workflow runs without
+a version tag validate only and cannot publish.
