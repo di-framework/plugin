@@ -7,7 +7,7 @@ explicit `@Component` injection on local classes, and direct `resolve` calls.
 
 Results include registration locations, dependency paths, missing registrations and
 cycles. `status: complete` means the inspected syntax fits this limited static model;
-it does not certify the application's runtime behavior. Findings can exist in a complete
+execution order is not modeled, and it does not certify the application's runtime behavior. Findings can exist in a complete
 report. File-local containers are not merged across files.
 
 Aliases, helper calls receiving a container, conditional registrations, imported classes,

@@ -26,7 +26,7 @@ export function analyzeDependencyGraph(sourceFiles: string[]): GraphReport {
   }
   const report: GraphReport = {
     status: 'complete',
-    scope: 'Static, file-local Container registrations for @di-framework/core 5.3.x. No application code is executed; runtime metadata, imported classes and container composition require further inspection.',
+    scope: 'Static, file-local Container registrations for @di-framework/core 5.3.x. Execution order is not modeled. No application code is executed; runtime metadata, imported classes and container composition require further inspection.',
     nodes: [], cycles: [], unresolved: [], findings: [], limitations: [],
   };
   for (const file of new Set(sourceFiles.map(f => resolve(f)))) {
@@ -45,13 +45,13 @@ export function analyzeDependencyGraph(sourceFiles: string[]): GraphReport {
     const components = new Set<string>();
     const token = (node: ts.Node | undefined): string | undefined => node && (ts.isStringLiteral(node) || ts.isIdentifier(node)) ? node.text : undefined;
     for (const statement of source.statements) {
-      if (ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier) && ['@di-framework/core', '@di-framework/core/decorators'].includes(statement.moduleSpecifier.text)) {
+      if (ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier) && ['@di-framework/core', '@di-framework/core/container', '@di-framework/core/decorators'].includes(statement.moduleSpecifier.text)) {
         const bindings = statement.importClause?.namedBindings;
         if (bindings && ts.isNamedImports(bindings)) for (const spec of bindings.elements) {
           const original = (spec.propertyName ?? spec.name).text;
-          if (original === 'Container') constructors.add(spec.name.text);
-          if (original === 'Component') components.add(spec.name.text);
-          if (original === 'container') containers.add(spec.name.text);
+          if (original === 'Container' && statement.moduleSpecifier.text !== '@di-framework/core/decorators') constructors.add(spec.name.text);
+          if (original === 'Component' && statement.moduleSpecifier.text === '@di-framework/core/decorators') components.add(spec.name.text);
+          if (original === 'container' && statement.moduleSpecifier.text !== '@di-framework/core/decorators') containers.add(spec.name.text);
         }
       }
       if (ts.isClassDeclaration(statement) && statement.name) classes.set(statement.name.text, statement);
@@ -89,10 +89,11 @@ export function analyzeDependencyGraph(sourceFiles: string[]): GraphReport {
       if (!name || (node.arguments[0] && ts.isIdentifier(node.arguments[0]) && !classes.has(name))) {
         limit(node, 'Computed tokens and imported/aliased class tokens require runtime or cross-file inspection.'); return;
       }
+      if (ts.isStringLiteral(node.arguments[0]!) && classes.has(name)) limit(node, 'String token collides with a local class name; constructor and string identity are not interchangeable for every registration.');
       if (method === 'resolve') { resolutions.push({ container: receiver, token: name, location: loc(node) }); return; }
       let parent: ts.Node | undefined = node.parent;
       while (parent && parent !== source) {
-        if (ts.isIfStatement(parent) || ts.isIterationStatement(parent, false) || ts.isFunctionLike(parent) || ts.isConditionalExpression(parent) || ts.isBinaryExpression(parent)) {
+        if (ts.isIfStatement(parent) || ts.isSwitchStatement(parent) || ts.isTryStatement(parent) || ts.isIterationStatement(parent, false) || ts.isFunctionLike(parent) || ts.isConditionalExpression(parent) || ts.isBinaryExpression(parent)) {
           limit(node, 'Conditional or function-scoped registration may not run.'); break;
         }
         parent = parent.parent;
@@ -119,6 +120,10 @@ export function analyzeDependencyGraph(sourceFiles: string[]): GraphReport {
         const factory = node.arguments[1];
         if (!factory || !(ts.isArrowFunction(factory) || ts.isFunctionExpression(factory))) limit(node, 'Only inline factory bodies are inspected.');
         else walk(factory.body, child => {
+          if (ts.isFunctionLike(child)) { limit(child, 'Nested factory callbacks are deferred; their dependencies are not modeled as eager edges.'); return; }
+          for (let parent: ts.Node | undefined = child.parent; parent && parent !== factory; parent = parent.parent) {
+            if (ts.isFunctionLike(parent)) return;
+          }
           if (ts.isCallExpression(child)) {
             if (ts.isPropertyAccessExpression(child.expression) && child.expression.expression.getText(source) === receiver && child.expression.name.text === 'resolve') {
               const dep = token(child.arguments[0]);

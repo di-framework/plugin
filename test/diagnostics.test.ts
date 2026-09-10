@@ -46,6 +46,9 @@ test('dynamic, imported, conditional, helper and empty patterns are incomplete',
     `app.registerValue('X', 1); configure(app);`,
     `app.registerValue('X', 1); const alias = app;`,
     `app.registerValue('X', 1); class {`,
+    `class Service {} app.registerValue('Service', 1); app.resolve(Service);`,
+    `switch (flag) { case 1: app.registerValue('X', 1); }`,
+    `try { app.registerValue('X', 1); } catch {}`,
     `// no registrations`,
   ]) {
     const graph = analyzeDependencyGraph([fixture(code)]);
@@ -57,4 +60,10 @@ test('supplied token assertions never claim source validation', () => {
   expect(validateTokens([{ name: 'Store', hasProvider: true }]).scope).toBe('caller-supplied assertions only');
   expect(validateTokens([{ name: 'Store', hasProvider: false }]).valid).toBe(false);
   expect(() => validateTokens([{ name: 'Store', hasProvider: 'yes' } as any])).toThrow('boolean');
+});
+
+test('deferred factory callbacks do not become eager cycles', () => {
+  const graph = analyzeDependencyGraph([fixture(`app.registerFactory('X', () => ({ later: () => app.resolve('X') }));`)]);
+  expect(graph.status).toBe('incomplete');
+  expect(graph.cycles).toEqual([]);
 });
