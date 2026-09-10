@@ -1,191 +1,55 @@
-import { readFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
-import createClient, { type Client } from 'openapi-fetch';
-import type { paths } from '../contracts/search-api';
+import { DocsError, record, requestDocs, requireInteger, requireString, type DocsTransport } from './docs-client';
+import { resolveDocsVersion, type DocsVersionOptions, type DocsVersionResolution } from './docs-version';
+export { SEARCH_ENDPOINTS } from './docs-client';
+export { resolveDocsVersion } from './docs-version';
 
-export const SEARCH_ENDPOINTS = [
-  'https://search.di-framework.dev',
-  'https://di-framework-docs-search.seemueller.workers.dev/api/docs/search',
-  'https://di-framework.dev/api/docs/search',
-];
-
-export interface SearchDocsOptions {
-  query: string;
-  version?: string;
-  maxHits?: number;
-}
-
+export interface SearchDocsOptions extends DocsVersionOptions { query: string; maxHits?: number }
 export interface SearchDocHit {
   title: string;
   breadcrumbs: string;
   url: string;
   snippet: string;
+  objectID: string;
+  topic: string;
+  cursor: string;
+  version: string;
+  window: { topic: string; cursor: string; version: string };
 }
-
 export interface SearchDocsResult {
   version: string;
+  resolution: DocsVersionResolution;
+  endpoint: string;
+  endpointFallbacks: Awaited<ReturnType<typeof requestDocs>>['endpointFallbacks'];
+  versionSupport: 'confirmed_by_hits' | 'unknown';
+  notice?: string;
   hits: SearchDocHit[];
 }
+export function detectInstalledDocsVersion(cwd = process.cwd()): string { return resolveDocsVersion({ projectPath: cwd }).resolvedVersion; }
+export function cleanSnippet(rawSnippet: string): string { return rawSnippet.replace(/<[^>]+>/g, ''); }
 
-type SearchClient = Client<paths>;
-
-/**
- * Creates a configured OpenAPI fetch client for the target base URL.
- */
-export function createSearchClient(baseUrl: string): SearchClient {
-  return createClient<paths>({
-    baseUrl,
-    headers: {
-      Accept: 'application/json',
-      'User-Agent': 'di-framework-plugin-mcp/1.0',
-    },
-  });
-}
-
-/**
- * Detects the installed di-framework version from package.json in the current working directory.
- * Returns formatted version like 'v4.2' or 'latest'.
- */
-export function detectInstalledDocsVersion(cwd = process.cwd()): string {
-  try {
-    const pkgPath = join(cwd, 'package.json');
-    if (!existsSync(pkgPath)) return 'latest';
-
-    const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
-    const allDeps = {
-      ...pkg.dependencies,
-      ...pkg.devDependencies,
-      ...pkg.peerDependencies,
-    };
-
-    const rawVersion =
-      allDeps['@di-framework/core'] ||
-      allDeps['@di-framework/ai'] ||
-      allDeps['@di-framework/http'] ||
-      allDeps['@di-framework/repo'];
-
-    if (!rawVersion) return 'latest';
-
-    const match = rawVersion.match(/(\d+)\.(\d+)/);
-    if (match) {
-      return `v${match[1]}.${match[2]}`;
-    }
-  } catch {
-    // Fall back to latest on parse failure
+export function formatHit(hit: unknown, version: string): SearchDocHit {
+  if (!record(hit) || !['url', 'pageTitle', 'breadcrumbs', 'objectID'].every(key => typeof hit[key] === 'string') || !hit.objectID || !record(hit._snippetResult) || !record(hit._snippetResult.content) || typeof hit._snippetResult.content.value !== 'string') {
+    throw new DocsError('invalid_response', 'Search hit is missing required URL, title, breadcrumbs, objectID or snippet fields');
   }
-  return 'latest';
+  let url: URL;
+  try { url = new URL(hit.url); } catch { throw new DocsError('invalid_response', 'Search hit has an invalid URL'); }
+  const topic = /\/([^/]+)\.html$/.exec(url.pathname)?.[1];
+  if (!topic || !['https:', 'http:'].includes(url.protocol)) throw new DocsError('invalid_response', 'Search hit URL does not identify an expandable documentation topic');
+  const urlVersion = /\/(v\d+\.\d+)\//.exec(url.pathname)?.[1] ?? 'latest';
+  if (urlVersion !== version) throw new DocsError('invalid_response', `Search hit version ${urlVersion} differs from requested ${version}`);
+  const window = { topic: decodeURIComponent(topic), cursor: hit.objectID, version };
+  return { title: hit.pageTitle, breadcrumbs: hit.breadcrumbs.replace(/\|/g, ' > '), url: hit.url, snippet: cleanSnippet(hit._snippetResult.content.value), objectID: hit.objectID, ...window, window };
 }
 
-/**
- * Executes a single versioned search query against the search API.
- */
-export async function fetchDocsQuery(
-  client: SearchClient,
-  version: string,
-  query: string,
-  maxHits: number
-): Promise<any[] | null> {
-  const { data, response } = await client.GET(
-    '/preview-search/{project}/{instance}/{version}',
-    {
-      params: {
-        path: {
-          project: 'docs',
-          instance: 'd',
-          version,
-        },
-        query: {
-          query: query.trim(),
-          maxHits: String(maxHits),
-        } as any,
-      },
-    }
-  );
-
-  if (response.ok && data) {
-    return (data as any).hits || [];
-  }
-  return null;
-}
-
-/**
- * Queries an endpoint for the requested version, falling back to 'latest' if necessary.
- */
-export async function queryEndpointWithFallback(
-  client: SearchClient,
-  requestedVersion: string,
-  query: string,
-  maxHits: number
-): Promise<SearchDocsResult | null> {
-  const primaryHits = await fetchDocsQuery(client, requestedVersion, query, maxHits);
-  if (primaryHits !== null) {
-    return {
-      version: requestedVersion,
-      hits: formatHits(primaryHits),
-    };
-  }
-
-  if (requestedVersion !== 'latest') {
-    const fallbackHits = await fetchDocsQuery(client, 'latest', query, maxHits);
-    if (fallbackHits !== null) {
-      return {
-        version: 'latest (fallback)',
-        hits: formatHits(fallbackHits),
-      };
-    }
-  }
-
-  return null;
-}
-
-/**
- * Removes HTML tags from search highlights and snippets.
- */
-export function cleanSnippet(rawSnippet: string): string {
-  return rawSnippet.replace(/<[^>]+>/g, '');
-}
-
-/**
- * Formats an individual raw search hit into a clean SearchDocHit.
- */
-export function formatHit(hit: any): SearchDocHit {
-  const rawSnippet = hit._snippetResult?.content?.value || hit.content || '';
-  return {
-    title: hit.pageTitle || hit.mainTitle || 'Documentation',
-    breadcrumbs: (hit.breadcrumbs || '').replace(/\|/g, ' > '),
-    url: hit.url,
-    snippet: cleanSnippet(rawSnippet),
-  };
-}
-
-/**
- * Formats a list of raw search hits.
- */
-export function formatHits(rawHits: any[]): SearchDocHit[] {
-  return rawHits.map(formatHit);
-}
-
-/**
- * Main entry point: iterates through candidate search endpoints and retrieves documentation hits.
- */
-export async function searchDocs(options: SearchDocsOptions): Promise<SearchDocsResult> {
-  const version = options.version || detectInstalledDocsVersion();
-  const maxHits = options.maxHits || 5;
-
-  for (const baseUrl of SEARCH_ENDPOINTS) {
-    try {
-      const client = createSearchClient(baseUrl);
-      const result = await queryEndpointWithFallback(client, version, options.query, maxHits);
-      if (result) {
-        return result;
-      }
-    } catch {
-      // Continue to next endpoint in case of network issue
-    }
-  }
-
-  return {
-    version,
-    hits: [],
-  };
+export async function searchDocs(options: SearchDocsOptions, transport?: DocsTransport): Promise<SearchDocsResult> {
+  requireString(options.query, 'query');
+  const maxHits = options.maxHits ?? 5;
+  requireInteger(maxHits, 'maxHits', 1, 50);
+  const resolution = resolveDocsVersion(options);
+  const version = resolution.resolvedVersion;
+  const params = new URLSearchParams({ query: options.query.trim(), maxHits: String(maxHits) });
+  const { data, endpoint, endpointFallbacks } = await requestDocs(`/preview-search/docs/d/${encodeURIComponent(version)}?${params}`, transport);
+  if (!record(data) || !Array.isArray(data.hits) || !Number.isInteger(data.nbHits) || data.nbHits !== data.hits.length) throw new DocsError('invalid_response', 'Search response must contain hits and a matching nbHits count', { endpoint });
+  const hits = data.hits.map(hit => formatHit(hit, version));
+  return { version, resolution, endpoint, endpointFallbacks, hits, versionSupport: hits.length ? 'confirmed_by_hits' : 'unknown', ...(hits.length ? {} : { notice: 'The service returned no matches. It does not report supported snapshots, so an unindexed/unsupported version cannot be distinguished from an empty query result. No version fallback was attempted.' }) };
 }

@@ -1,0 +1,18 @@
+# Documentation retrieval contract
+
+Verified against [di-framework/docs revision 354ec5726584c8d6bf2e39cd7edc1f6c06363b4d](https://github.com/di-framework/docs/tree/354ec5726584c8d6bf2e39cd7edc1f6c06363b4d/search) on 2026-09-10. The source of truth is `search/src/controllers/SearchController.ts`, `WindowController.ts`, `search/src/services/SearchService.ts`, `search/src/types.ts`, and `search/scripts/build-corpus.ts`. Route mounts are declared in `search/wrangler.jsonc`. A live OpenAPI probe did not succeed in this environment; source verification does not establish production availability.
+
+The checked-in OpenAPI document omits response schemas and query parameter declarations. Runtime validators therefore enforce the controller/types contract directly rather than trusting generated `unknown` payloads:
+
+- Search: `GET /preview-search/docs/d/{version}?query=...&maxHits=...`; response contains `hits`, `nbHits` and pagination/query metadata. Each hit includes `objectID`, `url`, `pageTitle`, `breadcrumbs`, and `_snippetResult.content.value`. Documentation URLs identify the snapshot and `<topic>.html`. `objectID` is the exact cursor accepted by the window controller, including IDs whose section slugs were truncated during corpus generation.
+- Window: `GET /window/{topic}/{cursor}?version=...&radius=...`; response includes the requested topic/cursor/version/radius, integer section indices/count and nonempty `chunks`. Radius is an integer from zero through five. Each chunk contains string `id`, `url`, `title`, `breadcrumbs` and `content`.
+
+Pass a search hit's `window` object directly as the arguments to `di_window`. Its version overrides later installation changes. There is no automatic version fallback: a different snapshot might describe different APIs. `resolution` records the caller's override, resolved snapshot, project directory, installed package/declaration provenance and any local fallback reason. Hoisted installations and installed workspace symlinks are resolved from the explicit `projectPath`; uninstalled `workspace:*` and link declarations fall back visibly to `latest`.
+
+Network and service failures can retry at most three fixed endpoints within one eight-second deadline, including response bodies. Results expose the successful endpoint and prior failed attempts. Access failures and client errors stop immediately; malformed responses produce errors. MCP tool failures have `isError: true` and structured error codes rather than successful empty payloads.
+
+## Upstream limits
+
+The current service has no supported-version discovery operation and does not include a resolved version in search responses. A search for an unsupported/unindexed snapshot returns the same HTTP 200 empty hits as a query with no matches. Empty results consequently expose `versionSupport: "unknown"` and an explanation, instead of claiming that the snapshot is supported. Returned hit URLs are checked against the requested snapshot.
+
+Window HTTP 404 similarly conflates missing topics, missing cursors and missing snapshots. The plugin preserves this uncertainty in an actionable `not_found` error. Distinguishing all three requires upstream version metadata and distinct error codes; clients cannot infer this reliably from the existing contract. `latest` is a mutable upstream alias, so preserving that alias does not pin content across a documentation deployment.
