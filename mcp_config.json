@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "di-framework-mcp": {
+    "di-framework": {
       "command": "node",
-      "args": ["${pluginDir}/dist/index.js"]
+      "args": ["${pluginDir}/dist/bin/cli.js", "serve"]
     }
   }
 }

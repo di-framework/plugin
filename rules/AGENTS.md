@@ -1,21 +1,22 @@
-# di-framework Architectural Rules & Conventions
+# di-framework conventions
 
-When authoring or modifying code within projects using `di-framework`, adhere to the following conventions:
+These bundled rules support @di-framework/core 5.3.0. Inspect the target project's
+resolved package versions, lockfile, and decorator/compiler configuration first. For
+other releases, verify public types and versioned documentation before prescribing APIs.
 
-## 1. Token & Provider Declarations
-- Use typed `InjectionToken<T>` or Symbols for service identifiers. Avoid raw string tokens for internal bindings.
-- Export token instances from dedicated token definitions or co-locate them with interface declarations.
-- Every registered provider must specify explicit lifecycle scope (`singleton`, `transient`, or `scoped`).
-
-## 2. Static Methods & Pure Factories
-- Static factory methods (e.g. `Service.create(...)`) must be pure and should not access global or ambient container instances.
-- Always pass dependencies explicitly through constructor injection or factory arguments.
-
-## 3. Container Immutability & Module Boundaries
-- Do not mutate container registrations after the container has been built or started.
-- Register all module providers during the configuration phase before calling `.build()` or `.start()`.
-- Use child containers or scoped contexts for request/session lifetimes rather than overriding root container bindings.
-
-## 4. Error Handling & Circular Dependencies
-- Circular dependencies between services must be resolved via lazy proxies or event-based decoupling.
-- Always handle unresolved token errors with descriptive fallbacks or explicit optional token decorators.
+- Register classes with `register(Service, { singleton: true | false })`, factories with
+  `registerFactory(token, () => value, options)`, or existing values with `registerValue`.
+  Singleton defaults to true. Class constructors and string tokens are supported.
+- Import decorators from `@di-framework/core/decorators`. Use explicit `@Component`
+  injection or factory arguments; types alone do not establish runtime injection.
+- Follow the application's explicit or global container convention. Static handlers and
+  `useContainer()` are supported framework patterns. Keep one installed core instance.
+- Resolve class registrations consistently by constructor: class-name aliases may cache
+  separate instances in 5.3.0. Avoid accidental registration overrides.
+- `fork()` copies registrations and resets singleton caches unless `carrySingletons` is
+  true. It is not a parent-linked scope, and factory closures retain captured containers.
+  Configure request-specific values and factories explicitly in isolated forks.
+- Test required dependency resolution and lifecycle behavior. Static diagnostic tools
+  cannot prove dynamic registrations work; inspect incomplete-analysis diagnostics.
+- Search documentation with the resolved version and retain that version when expanding
+  windows. Refresh rules, skills, examples and scaffold tests together for new releases.

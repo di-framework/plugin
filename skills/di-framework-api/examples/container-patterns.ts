@@ -1,42 +1,33 @@
-import { Container, createToken, Lifecycle } from '@di-framework/core';
+import assert from 'node:assert/strict';
+import { Container } from '@di-framework/core';
+import { Component } from '@di-framework/core/decorators';
 
-export interface DatabaseService {
-  query(sql: string): Promise<any[]>;
+class Logger {
+  messages: string[] = [];
+  info(message: string) { this.messages.push(message); }
+}
+class GreetingService {
+  constructor(@Component(Logger) readonly logger: Logger) {}
+  greet(name: string) { this.logger.info(`Hello, ${name}`); }
 }
 
-export interface UserService {
-  getUser(id: string): Promise<any>;
-}
+const root = new Container();
+root.register(Logger).register(GreetingService);
+root.resolve(GreetingService).greet('Ada');
+assert.deepEqual(root.resolve(Logger).messages, ['Hello, Ada']);
+assert.equal(root.resolve(GreetingService), root.resolve(GreetingService));
+root.register(GreetingService, { singleton: false });
+assert.notEqual(root.resolve(GreetingService), root.resolve(GreetingService));
 
-export const DB_TOKEN = createToken<DatabaseService>('DatabaseService');
-export const USER_SERVICE_TOKEN = createToken<UserService>('UserService');
+// A fork copies registrations; it is not a parent-linked request scope.
+const isolated = root.fork();
+assert.notEqual(isolated.resolve(Logger), root.resolve(Logger));
+const shared = root.fork({ carrySingletons: true });
+assert.equal(shared.resolve(Logger), root.resolve(Logger));
 
-export class SqlDatabaseService implements DatabaseService {
-  async query(sql: string) {
-    return [{ id: '1', name: 'Sample' }];
-  }
-}
-
-export class DefaultUserService implements UserService {
-  constructor(private db: DatabaseService) {}
-
-  async getUser(id: string) {
-    return this.db.query(`SELECT * FROM users WHERE id = '${id}'`);
-  }
-}
-
-export function configureAppContainer(): Container {
-  const container = new Container();
-
-  container.register(DB_TOKEN, {
-    useClass: SqlDatabaseService,
-    lifecycle: Lifecycle.Singleton,
-  });
-
-  container.register(USER_SERVICE_TOKEN, {
-    useFactory: (c) => new DefaultUserService(c.resolve(DB_TOKEN)),
-    lifecycle: Lifecycle.Scoped,
-  });
-
-  return container;
-}
+// Factories receive no arguments. Close over the intended container explicitly.
+const factoryContainer = new Container();
+factoryContainer.register(Logger);
+factoryContainer.registerFactory('greeting', () => new GreetingService(factoryContainer.resolve(Logger)));
+assert.equal(factoryContainer.resolve<GreetingService>('greeting').logger, factoryContainer.resolve(Logger));
+root.clear(); isolated.clear(); shared.clear(); factoryContainer.clear();

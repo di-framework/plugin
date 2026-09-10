@@ -1,5 +1,5 @@
 {
   "name": "di-framework",
-  "description": "Antigravity plugin for di-framework providing API skills, conventions, and MCP diagnostic tools",
+  "description": "Agent skills, conventions, and MCP tools for di-framework",
   "version": "1.0.0"
 }
