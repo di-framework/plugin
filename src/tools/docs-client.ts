@@ -3,7 +3,7 @@ export const SEARCH_ENDPOINTS = [
   'https://di-framework-docs-search.seemueller.workers.dev/api/docs/search',
   'https://di-framework.dev/api/docs/search',
 ];
-export type DocsErrorCode = 'invalid_input' | 'unsupported_version' | 'not_found' | 'access_denied' | 'service_error' | 'network_error' | 'timeout' | 'invalid_response' | 'http_error';
+export type DocsErrorCode = 'invalid_input' | 'not_found' | 'access_denied' | 'service_error' | 'network_error' | 'timeout' | 'invalid_response' | 'http_error';
 export class DocsError extends Error {
   constructor(public code: DocsErrorCode, message: string, public details: Record<string, unknown> = {}) { super(message); this.name = 'DocsError'; }
 }
@@ -28,7 +28,7 @@ export async function requestDocs(path: string, transport: DocsTransport = {}): 
       try {
         const response = await (transport.fetch ?? fetch)(endpoint + path, { signal: controller.signal, headers: { Accept: 'application/json', 'User-Agent': 'di-framework-plugin-mcp/1.0' } });
         if (!response.ok) {
-          const code: DocsErrorCode = response.status === 401 || response.status === 403 ? 'access_denied' : response.status === 404 ? 'not_found' : response.status === 410 ? 'unsupported_version' : response.status >= 500 || response.status === 429 ? 'service_error' : 'http_error';
+          const code: DocsErrorCode = response.status === 401 || response.status === 403 ? 'access_denied' : response.status === 404 ? 'not_found' : response.status >= 500 || response.status === 429 ? 'service_error' : 'http_error';
           await response.body?.cancel();
           throw new DocsError(code, `Documentation endpoint returned HTTP ${response.status}. ${code === 'access_denied' ? 'Check service access or authentication.' : code === 'not_found' ? 'Check the topic, cursor and documentation version; this service does not distinguish them in 404 responses.' : 'Check the requested version and service availability.'}`, { endpoint, status: response.status });
         }

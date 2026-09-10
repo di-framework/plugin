@@ -38,7 +38,7 @@ describe('documentation retrieval', () => {
     const result = await searchDocs({ query: 'nothing', version: 'v99.0' }, transport(() => { calls++; return Response.json({ hits: [], nbHits: 0 }); }));
     expect(result.hits).toEqual([]); expect(result.versionSupport).toBe('unknown'); expect(result.version).toBe('v99.0'); expect(calls).toBe(1);
   });
-  test.each([[401, 'access_denied'], [403, 'access_denied'], [404, 'not_found'], [410, 'unsupported_version'], [400, 'http_error']])('HTTP %d surfaces %s without endpoint or version fallback', async (status, code) => {
+  test.each([[401, 'access_denied'], [403, 'access_denied'], [404, 'not_found'], [410, 'http_error'], [400, 'http_error']])('HTTP %d surfaces %s without endpoint or version fallback', async (status, code) => {
     let calls = 0;
     await expect(searchDocs({ query: 'events', version: 'v5.3' }, transport(() => { calls++; return new Response(null, { status: Number(status) }); }))).rejects.toMatchObject({ code });
     expect(calls).toBe(1);
@@ -63,7 +63,7 @@ describe('documentation retrieval', () => {
   test('deadline also bounds a stalled response body', async () => {
     await expect(requestDocs('/test', { ...transport(() => new Response(new ReadableStream({ start() {} }))), timeoutMs: 25 })).rejects.toMatchObject({ code: 'timeout' });
   });
-  test.each([{ hits: [] }, { hits: [{}], nbHits: 1 }, { hits: [{ ...rawHit, url: 'https://docs.di-framework.dev/v4.2/events.html' }], nbHits: 1 }])('rejects malformed and mismatched search responses', async body => {
+  test.each([{ hits: [] }, { hits: [{}], nbHits: 1 }, { hits: [{ ...rawHit, url: 'https://docs.di-framework.dev/v5.3/%ZZ.html' }], nbHits: 1 }, { hits: [{ ...rawHit, url: 'https://docs.di-framework.dev/v4.2/events.html' }], nbHits: 1 }])('rejects malformed and mismatched search responses', async body => {
     await expect(searchDocs({ query: 'events', version: 'v5.3' }, transport(() => Response.json(body)))).rejects.toMatchObject({ code: 'invalid_response' });
   });
   test('window failure and malformed JSON cannot become missing topics or empty results', async () => {

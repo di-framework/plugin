@@ -37,7 +37,9 @@ export function formatHit(hit: unknown, version: string): SearchDocHit {
   if (!topic || !['https:', 'http:'].includes(url.protocol)) throw new DocsError('invalid_response', 'Search hit URL does not identify an expandable documentation topic');
   const urlVersion = /\/(v\d+\.\d+)\//.exec(url.pathname)?.[1] ?? 'latest';
   if (urlVersion !== version) throw new DocsError('invalid_response', `Search hit version ${urlVersion} differs from requested ${version}`);
-  const window = { topic: decodeURIComponent(topic), cursor: hit.objectID, version };
+  let decodedTopic: string;
+  try { decodedTopic = decodeURIComponent(topic); } catch { throw new DocsError('invalid_response', 'Search hit URL contains an invalid encoded topic'); }
+  const window = { topic: decodedTopic, cursor: hit.objectID, version };
   return { title: hit.pageTitle, breadcrumbs: hit.breadcrumbs.replace(/\|/g, ' > '), url: hit.url, snippet: cleanSnippet(hit._snippetResult.content.value), objectID: hit.objectID, ...window, window };
 }
 
