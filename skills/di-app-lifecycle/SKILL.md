@@ -8,8 +8,10 @@ description: Run, test, build, diagnose, or deploy di-framework applications loc
 Inspect the app's package scripts, resolved framework/CLI versions and lockfile, tsconfig,
 entrypoint, `di-framework.config.json`, and (for deployment) `di-framework.deploy.toml`.
 Use installed binaries and their `--help`; avoid a one-shot latest CLI changing the
-project's toolchain. These workflows are verified against **5.3.0** tagged command
-implementations. Runtime requirements and configuration are version-specific.
+project's toolchain. Application workflows and bundled examples are verified against
+**5.3.0** tagged implementations. Shared Pulumi platform guidance is scoped separately
+in the wasmCloud reference; inspect the installed extension, kube binary, and platform
+package versions before using it. Runtime requirements and configuration are version-specific.
 
 For an existing application, use its development/test scripts. `di-framework check`
 and `di-framework build` are the application CLI commands. They use `ttsc` when available
